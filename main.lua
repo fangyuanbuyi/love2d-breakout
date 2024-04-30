@@ -1,9 +1,9 @@
-require("cube")
+require("modules.cube")
 
 function love.load()
 	obj = {
-		vx = 20,
-		vy = 10,
+		vx = 15,
+		vy = 8,
 		x = 100,
 		y = 100,
 		r = 20
@@ -19,12 +19,7 @@ end
 function love.update()
 
 	local vx = 20
-	local vy = 10
-	if(love.keyboard.isDown("down")) then
-		platform.pos_y = platform.pos_y + vy
-	elseif(love.keyboard.isDown("up")) then
-		platform.pos_y = platform.pos_y - vy
-	elseif(love.keyboard.isDown("left")) then
+	if(love.keyboard.isDown("left")) then
 		platform.pos_x = platform.pos_x - vx
 	elseif(love.keyboard.isDown("right")) then
 		platform.pos_x = platform.pos_x + vx
@@ -90,5 +85,11 @@ function touch(ball,platform)
 		end
 	end
 
+	return vx, vy
+end
+
+function random_ball_speed(ball)
+	vx = ball.vx + (love.math.random() * 10) % 10
+	vy = ball.vy + (love.math.random() * 10) % 10
 	return vx, vy
 end
