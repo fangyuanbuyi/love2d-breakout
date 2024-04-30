@@ -1,7 +1,7 @@
 require("modules.cube")
 
 function love.load()
-	obj = {
+	ball = {
 		vx = 15,
 		vy = 8,
 		x = 100,
@@ -41,11 +41,12 @@ function love.draw()
 	end
 	love.graphics.points(unpack(arr))
 
-	love.graphics.circle('fill', obj.x, obj.y, obj.r)
+	love.graphics.circle('fill', ball.x, ball.y, ball.r)
 
-	obj.vx, obj.vy = touch(obj, platform)
-	obj.x = obj.vx + obj.x
-	obj.y = obj.vy + obj.y
+	ball.vx, ball.vy = touch(ball, platform)
+	local vx, vy = ball.vx, ball.vy
+	ball.x = vx + ball.x
+	ball.y = vy + ball.y
 	
 
 	love.graphics.polygon('fill', platform.pos_x, platform.pos_y, 
@@ -56,14 +57,21 @@ end
 
 
 function touch(ball,platform)
-	vx, vy = ball.vx, ball.vy
+	local vx, vy = ball.vx, ball.vy
 	
-	if(ball.x >= love.graphics.getWidth()-ball.r or ball.x <= 0+ball.r) then 
+	if(ball.x+vx > love.graphics.getWidth()-ball.r or ball.x+vx < 0+ball.r) then 
 		vx = -vx
 	end
-	if(ball.y >= love.graphics.getHeight()-ball.r or ball.y <= 0+ball.r) then 
+	if(ball.y+vy > love.graphics.getHeight()-ball.r or ball.y+ball.vy < 0+ball.r) then 
 		vy = -vy
 	end
+
+	vx,vy = touch_platform(ball, platform, vx, vy);
+
+	return vx, vy
+end
+
+function touch_platform(ball, platform, vx, vy)
 
 	if(ball.x >= platform.pos_x and ball.x <= platform.pos_x + platform.width) then
 		if(ball.y+ball.r >= platform.pos_y and ball.y <= platform.pos_y+platform.height
@@ -84,12 +92,12 @@ function touch(ball,platform)
 			vx = -vx
 		end
 	end
-
 	return vx, vy
 end
 
+
 function random_ball_speed(ball)
-	vx = ball.vx + (love.math.random() * 10) % 10
-	vy = ball.vy + (love.math.random() * 10) % 10
+	local vx = ball.vx + (love.math.random() * 10) % 5
+	local vy = ball.vy + (love.math.random() * 10) % 5
 	return vx, vy
 end
