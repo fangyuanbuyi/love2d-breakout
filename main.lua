@@ -1,7 +1,7 @@
 require('modules.TextButton')
 require('modules.Brick')
 require('modules.StartUI')
-require('test')
+-- require('test')
 
 
 hack_font_ttf_path = "font/hack/Hack-Bold.ttf"
@@ -30,6 +30,7 @@ function init()
 end
 
 function love.load()
+
 	ball = {
 		vx = 0,
 		vy = 0,
@@ -61,13 +62,16 @@ function get_input()
 	end
 
 	if(love.keyboard.isDown('up') and BALL_SEND == 0) then
-		ball.vx,ball.vy = 15, -8
+		local f = love.math.random() - 0.5
+		local vx = 15
+		if(f < 0) then vx = -vx end
+		ball.vx,ball.vy = vx, -8
 		BALL_SEND = 1
 	end
 
 	-- test input 
 	-- when game is finished, it will be hidden
-	-- test_input(platform, ball)
+	-- test_input(platform, ball) ------ disable function --------
 	
 	-- if input will make platform beyond the edge
 	-- then adjust its position
@@ -240,7 +244,12 @@ function gamewin_draw()
 	btn.position = {x = love.graphics.getWidth()/2,
 		y = love.graphics.getHeight()/2 + offsetY}
 	btn.text = 'restart'
-	TextButton:draw(btn, restart)
+	TextButton:draw(btn, init)
+
+	btn.position = {x = love.graphics.getWidth()/2,
+	y = love.graphics.getHeight()/2 + offsetY + 60}
+	btn.text = 'back to menu'
+	TextButton:draw(btn, back_to_start_ui)
 end
 
 function gameover()
@@ -265,6 +274,15 @@ function gameover_draw()
 	btn.text = 'restart'
 	TextButton:draw(btn,init)
 
+	btn.position = {x = love.graphics.getWidth()/2,
+	y = love.graphics.getHeight()/2 + offsetY + 60}
+	btn.text = 'back to menu'
+	TextButton:draw(btn, back_to_start_ui)
+end
+
+function back_to_start_ui()
+	init()
+	START_UI_DISPLAY = 1
 end
 
 
