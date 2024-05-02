@@ -1,54 +1,86 @@
 require('modules.TextButton')
 require('modules.Brick')
+require('modules.StartUI')
 require('test')
+
 
 hack_font_ttf_path = "font/hack/Hack-Bold.ttf"
 
+function init()
+	platform.position.x, platform.position.y = 400, 600
+	
+	local x1 = love.graphics.getWidth()/2
 
+	if(x1 < ball.r) then x1 = ball.r end
+	if(x1 > love.graphics.getWidth()-ball.r) then x1 = love.graphics.getWidth()-ball.r end
+
+	platform.width, platform.height, platform.position.x, 
+		platform.position.y = 80, 20, 0, 600   
+	ball.vx, ball.vy, ball.x, ball.y, ball.r  = 0, 0, x1, platform.position.y, 20
+	platform.position.x = x1 - platform.width/2
+	ball.y = ball.y - ball.r
+
+	GAME_OVER = 0
+	GAME_WIN = 0
+	BALL_SEND = 0
+
+	for i in ipairs(bricks) do
+		bricks[i].visible = true
+	end
+end
 
 function love.load()
 	ball = {
-		vx = 15,
-		vy = -8,
-		x = 100,
-		y = 600,
-		r = 20
+		vx = 0,
+		vy = 0,
+		x = 0,
+		y = 0,
+		r = 0
 	}
 	platform = {
-		width = 120,
-		height = 20,
-		pos_x = 400,
-		pos_y = 640
+		width = 0,
+		height = 0,
+		position = {x = 0, y = 0}
 	}
 	bricks = {}
 	bricks_init()
-	GAME_OVER = 1
-	GAME_WIN = 0
+	START_UI_DISPLAY = 1
+	init()
 end
 
 function get_input()
 	-- base change velocity
 	local vx = 20
 
+	local px = platform.position.x
 	-- normal input
 	if(love.keyboard.isDown("left")) then
-		platform.pos_x = platform.pos_x - vx
+		platform.position.x = platform.position.x - vx
 	elseif(love.keyboard.isDown("right")) then
-		platform.pos_x = platform.pos_x + vx
+		platform.position.x = platform.position.x + vx
+	end
+
+	if(love.keyboard.isDown('up') and BALL_SEND == 0) then
+		ball.vx,ball.vy = 15, -8
+		BALL_SEND = 1
 	end
 
 	-- test input 
 	-- when game is finished, it will be hidden
-	test_input(platform, ball)
+	-- test_input(platform, ball)
 	
 	-- if input will make platform beyond the edge
 	-- then adjust its position
-	if(platform.pos_x < 0) then
-		platform.pos_x = 0
-	elseif (platform.pos_x + platform.width > love.graphics.getWidth()) then
-		platform.pos_x = love.graphics.getWidth() - platform.width
+	if(platform.position.x < 0) then
+		platform.position.x = 0
+	elseif (platform.position.x + platform.width > love.graphics.getWidth()) then
+		platform.position.x = love.graphics.getWidth() - platform.width
 	end
 
+	if(not(px == platform.position.x) and BALL_SEND == 0) then
+		ball.x = platform.position.x +  platform.width/2
+	end
+	
 end
 
 function love.update()
@@ -64,7 +96,7 @@ function love.update()
 	ball.y = ball.vy + ball.y
 -- if there is no brick visible, set GAME_WIN = 1 
 	GAME_WIN = 1
-	for i in ipairs(bricks) do
+	for i in pairs(bricks) do
 		if(bricks[i].visible == true) then
 			GAME_WIN = 0
 		end
@@ -73,6 +105,10 @@ function love.update()
 end
 
 function love.draw()
+	if(START_UI_DISPLAY == 1) then
+		start_ui_draw()
+		return 
+	end
 	if(GAME_OVER == 1) then
 		gameover_draw()
 		return 
@@ -94,10 +130,10 @@ function love.draw()
 
 	love.graphics.setColor(1,1,1)
 	love.graphics.circle('fill', ball.x, ball.y, ball.r)
-	love.graphics.polygon('fill', platform.pos_x, platform.pos_y, 
-		platform.pos_x+platform.width, platform.pos_y, 
-		platform.pos_x+platform.width, platform.pos_y+platform.height, 
-		platform.pos_x, platform.pos_y+platform.height)
+	love.graphics.polygon('fill', platform.position.x, platform.position.y, 
+		platform.position.x+platform.width, platform.position.y, 
+		platform.position.x+platform.width, platform.position.y+platform.height, 
+		platform.position.x, platform.position.y+platform.height)
 end
 
 
@@ -126,41 +162,23 @@ function touch(ball, platform, bricks)
 end
 
 function touch_platform(ball, platform, vx, vy)
-	if(ball.y + ball.r >= platform.pos_y 
-	and ball.y - ball.r <= platform.pos_y + platform.height) then
-		if(vx > 0 
-		and ball.x + ball.r <= platform.pos_x 
-		and ball.x + ball.r + vx >= platform.pos_x) then
-			vx = -vx
-			ball.x = platform.pos_x - ball.r
-		elseif(vx < 0 
-		and ball.x - ball.r >= platform.pos_x + platform.width
-		and ball.x - ball.r + vx <= platform.pos_x + platform.width)  then
-			vx = - vx
-			ball.x = platform.pos_x + platform.width + ball.r
-		end
-	end
-	if(ball.x + ball.r >= platform.pos_x 
-	and ball.x - ball.r <= platform.pos_x + platform.width) then
-		if(vy > 0
-		and ball.y + ball.r <= platform.pos_y	
-		and ball.y + ball.r + vy >= platform.pos_y) then
-			vy = -vy
-			ball.y = platform.pos_y - ball.r
-		elseif (vy < 0
-		and ball.y - ball.r >= platform.pos_y + platform.height
-		and ball.y - ball.r + vy <= platform.pos_y + platform.height) then
-			vy = -vy
-			ball.y = platform.pos_y + platform.height + ball.r
-		end
-	end
-	return vx, vy
+	return touch_alogrithm(ball, platform, vx, vy)
 end
 
 function touch_bricks(ball, bricks, vx, vy)
-	for i in ipairs(bricks) do
-		vx, vy = touch_brick(ball, bricks[i], vx, vy)
+	-- find the nearest brick
+	local _index, min_x, min_y = 1, love.graphics.getWidth(), love.graphics.getHeight()
+
+	for i=1, #bricks do
+		local x, y = math.abs(ball.x+vx - bricks[i].position.x - bricks[i].width/2 ), 
+			math.abs(ball.y+vy - bricks[i].position.y - bricks[i].height/2 )
+		if x <= min_x and y <= min_y and bricks[i].visible == true then
+			min_x, min_y = x, y
+			_index = i
+		end
 	end
+	vx, vy = touch_brick(ball, bricks[_index], vx, vy)
+
 	return vx, vy
 end
 
@@ -168,47 +186,42 @@ function touch_brick(ball, brick, vx, vy)
 	if(brick.visible == false) then
 		return vx,vy
 	end
+	return touch_alogrithm(ball, brick, vx, vy, function () brick.visible = false end)
+end
 
-	if(ball.y + ball.r >= brick.position.y 
-	and ball.y - ball.r <= brick.position.y + brick.height) then
-		if(vx > 0 
-		and ball.x + ball.r <= brick.position.x 
-		and ball.x + ball.r + vx > brick.position.x) then
-			vx = -vx
-			ball.x = brick.position.x - ball.r
-			brick.visible = false
-		elseif(vx < 0 
-		and ball.x - ball.r >= brick.position.x + brick.width
-		and ball.x - ball.r + vx < brick.position.x + brick.width)  then
-			vx = - vx
-			ball.x = brick.position.x + brick.width + ball.r
-			brick.visible = false
+function touch_alogrithm(_ball, _square, vx, vy, add_event)
+	if(not add_event) then
+		add_event = function() end
+	end
+
+	if(not (_ball.x <= _square.position.x + _square.width + _ball.r 
+	and _ball.x >= _square.position.x - _ball.r
+	and _ball.y <= _square.position.y + _square.height + _ball.r
+	and _ball.y >= _square.position.y - _ball.r)) then
+		if(_ball.x + vx <= _square.position.x + _square.width + _ball.r 
+		and _ball.x + vx >= _square.position.x - _ball.r
+		and _ball.y + vy <= _square.position.y + _square.height + _ball.r
+		and _ball.y + vy >= _square.position.y - _ball.r) then
+			if(_ball.x > _square.position.x + _square.width + _ball.r 
+			or _ball.x < _square.position.x - _ball.r) then
+				vx = -vx
+				add_event()
+			elseif(_ball.y > _square.position.y + _square.height + _ball.r
+			or _ball.y < _square.position.y - _ball.r) then
+				vy = -vy
+				add_event()
+			else
+				vx = -vx
+				vy = -vy
+				add_event()
+			end
 		end
 	end
-	if(ball.x + ball.r >= brick.position.x 
-	and ball.x - ball.r <= brick.position.x + brick.width) then
-		if(vy > 0
-		and ball.y + ball.r <= brick.position.y	
-		and ball.y + ball.r + vy > brick.position.y) then
-			vy = -vy
-			ball.y = brick.position.y - ball.r
-			brick.visible = false
-		elseif (vy < 0
-		and ball.y - ball.r >= brick.position.y + brick.height
-		and ball.y - ball.r + vy < brick.position.y + brick.height) then
-			vy = -vy
-			ball.y = brick.position.y + brick.height + ball.r
-			brick.visible = false
-		end
-	end
+
 	return vx, vy
 end
 
 -- ------------------
-
-function start_ui_draw()
-	-- unfinshed
-end
 
 function gamewin_draw()
 	love.graphics.setColor(1,1,1)
@@ -246,39 +259,21 @@ function gameover_draw()
 	)
 
 	local offsetY = 100
-
 	local btn = {}
 	btn.position = {x = love.graphics.getWidth()/2,
 		y = love.graphics.getHeight()/2 + offsetY}
 	btn.text = 'restart'
-	TextButton:draw(btn,restart)
+	TextButton:draw(btn,init)
 
 end
 
-function restart()
-	platform.pos_x, platform.pos_y = 400, 600
-	
-	local x1 = love.math.random() * love.graphics.getWidth()
-
-	if(x1 < ball.r) then x1 = ball.r end
-	if(x1 > love.graphics.getWidth()-ball.r) then x1 = love.graphics.getWidth()-ball.r end
-
-	ball.vx, ball.vy, ball.x, ball.y  = 15, 8, x1, 100
-
-	GAME_OVER = 0
-	GAME_WIN = 0
-
-	for i in ipairs(bricks) do
-		bricks[i].visible = true
-	end
-end
 
 -- init bricks
 function  bricks_init()
-	for i = 0, 5 do
+	for i = 1, 10 do
 		local b = {
 			color = {0.8,0.8,0},
-			position = {x = 100 * i + 10, y = 100},
+			position = {x = 100 * i - 90, y = 100},
 			height = 40,
 			width = 80,
 			visible = true

@@ -1,3 +1,3 @@
 function test_input(platform, ball)
-	platform.pos_x = ball.x - ball.r
+	platform.position.x = ball.x - platform.width/2
 end
